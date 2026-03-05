@@ -1,6 +1,4 @@
-from pathlib import Path 
-
-workdir: str(Path(workflow.snakefile).parent.absolute() / "workdir")
+workdir: config["workdir"]
 
 rule all:
     output: "foo.txt"
