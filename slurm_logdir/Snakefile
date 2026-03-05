@@ -1,0 +1,8 @@
+from pathlib import Path 
+
+workdir: str(Path(workflow.snakefile).parent.absolute() / "workdir")
+
+rule all:
+    output: "foo.txt"
+    shell:
+        "touch {output}"
