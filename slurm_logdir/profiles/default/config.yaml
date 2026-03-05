@@ -1,3 +1,0 @@
-executor: slurm
-slurm-logdir: log/slurm
-jobs: 5
