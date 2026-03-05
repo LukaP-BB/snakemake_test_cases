@@ -4,5 +4,3 @@ When the current working directory is different from the workflow working direct
 To avoid this issue, the command launching snakemake must be in the workflow's working directory (see `launch_success.sh`)
 
 To test the fail case, see `launch_fail.sh`
-
-Command line options
