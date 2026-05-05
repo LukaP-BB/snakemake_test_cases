@@ -1,0 +1,64 @@
+workdir: "workdir/below"
+
+# see https://github.com/LukaP-BB/snakemake/commit/311b06f58aab1e9fe899d4691aa2dfa05e6570b6 for a proposed implementation
+
+def shell_wrapper(shell_script, **ctx) : 
+  """
+  Generates a thin bash wrapper around the shell scripts defined in all `shell` directives. 
+  This wrapper receives both the script and the context (both locals and globals).
+
+  This function handles cases where log files are given or not. 
+  - if a single log file is defined, take it as is
+  - if no log file is defined, generates a path in the form `<rule_name>/<wildcards>.log`
+  - if >1 log file is defined, raise an Exception
+
+  Defining this function in the Snakefile with the name "shell_wrapper" allows snakemake to use it to wrap all commands defined in a `shell` directive.
+  """
+
+  if not (log_path := ctx["log"]) : 
+    wildcards_strs = "_".join([f"{k}={v}" for k, v in ctx['wildcards'].items()])
+    log_path = f"log/{ctx["rule"]}/{wildcards_strs}.log"
+    parent = Path(str(log_path)).parent
+    parent.mkdir(exist_ok=True, parents=True)
+
+  if isinstance(ctx["log"], list) and not log_path :
+    if len(ctx["log"]) == 1 :
+      log_path = ctx["log"][0]
+    else: 
+      raise Exception(f"Using shell_wrapper, you must specify only 1 log file for rule {ctx['rule']}")
+
+  return f"""
+    (
+    set -euo pipefail
+    
+    echo [wildcards] {ctx['wildcards']}
+    echo [inputs] {ctx['input']}
+    echo [outputs] {ctx['output']}
+
+    set -x
+    {shell_script}    
+    ) > {log_path} 2>&1 
+    """
+
+
+rule foo:
+  output: "foo/{n}.txt"
+  log: "log/my_logs/foo_{n}.log"
+  shell:
+    """
+    touch {output}
+    """
+
+rule bar:
+  output: "bar/{x}/{y}.txt"
+  shell:
+    """
+    touch {output}
+    """
+
+
+rule all:
+  default_target: True
+  input:
+    expand(rules.foo.output, n=range(2)),
+    expand(rules.bar.output, x=range(2), y=range(2)),
