@@ -2,7 +2,7 @@ workdir: "workdir/below"
 
 # see https://github.com/LukaP-BB/snakemake/commit/311b06f58aab1e9fe899d4691aa2dfa05e6570b6 for a proposed implementation
 
-def shell_wrapper(shell_script, **ctx) : 
+def shell_wrapper(shell_script, ctx) : 
   """
   Generates a thin bash wrapper around the shell scripts defined in all `shell` directives. 
   This wrapper receives both the script and the context (both locals and globals).
@@ -40,25 +40,37 @@ def shell_wrapper(shell_script, **ctx) :
     ) > {log_path} 2>&1 
     """
 
+shell.add_wrapper(shell_wrapper)
 
 rule foo:
   output: "foo/{n}.txt"
   log: "log/my_logs/foo_{n}.log"
   shell:
     """
-    touch {output}
+    touch {output} #foo
     """
 
 rule bar:
   output: "bar/{x}/{y}.txt"
   shell:
     """
-    touch {output}
+    touch {output} #bar
     """
 
+rule logfail:
+  """
+  This rule is expected to fail because a {log} is defined while no log directive is here. 
+  Since the formatting of the shell cmd happens before the shell wrapping, 
+  the wrapper cannot handle this use case and another fix must be made elsewhere.
+  """
+  output:
+    "logfail.txt"
+  shell:
+    "touch {output} > {log} #logfail"
 
 rule all:
   default_target: True
   input:
     expand(rules.foo.output, n=range(2)),
     expand(rules.bar.output, x=range(2), y=range(2)),
+    # rules.logfail.output
